@@ -1,0 +1,103 @@
+@page "/"
+@inject IRecipeRepository Repository
+@inject RecipeSearchService SearchService
+
+<PageTitle>BigBookOfRecipes</PageTitle>
+
+<section class="hero">
+    <div class="hero__copy">
+        <p class="eyebrow">Kitchen index</p>
+        <h1>Find a useful recipe fast.</h1>
+        <p class="hero__lede">
+            Browse by section, search across ingredients and instructions, or head straight to the admin shelf to keep the book current.
+        </p>
+    </div>
+
+    <div class="hero__actions">
+        <a class="button button--primary" href="/recipes">Browse all recipes</a>
+        <a class="button" href="/admin">Open admin</a>
+    </div>
+</section>
+
+<section class="panel stack-gap">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Search</p>
+            <h2>Find by name, section, ingredient, or step text</h2>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <label class="field-label" for="recipe-search">Search recipes</label>
+        <InputText id="recipe-search" class="text-input" @bind-Value="SearchText" @bind-Value:event="oninput" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(SearchText))
+    {
+        @if (SearchResults.Count == 0)
+        {
+            <p class="empty-state">No recipes matched that search yet. Try a section, ingredient, or a shorter phrase.</p>
+        }
+        else
+        {
+            <div class="recipe-grid">
+                @foreach (var result in SearchResults)
+                {
+                    <article class="recipe-card">
+                        <div class="recipe-card__meta">@string.Join(" • ", result.Sections.Select(section => section.Name))</div>
+                        <h3><a href="/recipes/@result.Recipe.Slug">@result.Recipe.Name</a></h3>
+                        <p>@result.Recipe.Description</p>
+                    </article>
+                }
+            </div>
+        }
+    }
+</section>
+
+<section class="stack-gap">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Sections</p>
+            <h2>Browse the book</h2>
+        </div>
+    </div>
+
+    <div class="section-grid">
+        @foreach (var section in Sections)
+        {
+            <a class="section-card" href="/sections/@section.Slug">
+                <h3>@section.Name</h3>
+                <p>@section.Description</p>
+                <span>@GetRecipeCount(section.Id) recipes</span>
+            </a>
+        }
+    </div>
+</section>
+
+@code {
+    private IReadOnlyList<RecipeSection> Sections = [];
+    private IReadOnlyList<Recipe> Recipes = [];
+    private IReadOnlyDictionary<Guid, RecipeSection> SectionsById = new Dictionary<Guid, RecipeSection>();
+    private string _searchText = string.Empty;
+
+    private string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            _searchText = value;
+            SearchResults = SearchService.Search(_searchText, Recipes, SectionsById);
+        }
+    }
+
+    private IReadOnlyList<SearchResult> SearchResults { get; set; } = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Sections = await Repository.GetSectionsAsync();
+        Recipes = await Repository.GetRecipesAsync();
+        SectionsById = Sections.ToDictionary(section => section.Id);
+    }
+
+    private int GetRecipeCount(Guid sectionId) => Recipes.Count(recipe => recipe.SectionIds.Contains(sectionId));
+}

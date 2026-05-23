@@ -1,0 +1,38 @@
+@page "/recipes"
+@inject IRecipeRepository Repository
+
+<PageTitle>Recipes</PageTitle>
+
+<section class="section-heading">
+    <div>
+        <p class="eyebrow">Browse</p>
+        <h1>All recipes</h1>
+    </div>
+    <a class="button" href="/admin/recipes/new">Add recipe</a>
+</section>
+
+<div class="recipe-grid">
+@foreach (var recipe in RecipesList)
+    {
+        var names = string.Join(" • ", GetSections(recipe).Select(section => section.Name));
+        <article class="recipe-card">
+            <div class="recipe-card__meta">@names</div>
+            <h2><a href="/recipes/@recipe.Slug">@recipe.Name</a></h2>
+            <p>@recipe.Description</p>
+        </article>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<Recipe> RecipesList = [];
+    private IReadOnlyList<RecipeSection> Sections = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Sections = await Repository.GetSectionsAsync();
+        RecipesList = await Repository.GetRecipesAsync();
+    }
+
+    private IEnumerable<RecipeSection> GetSections(Recipe recipe) =>
+        Sections.Where(section => recipe.SectionIds.Contains(section.Id));
+}

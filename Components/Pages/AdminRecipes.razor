@@ -1,0 +1,57 @@
+@page "/admin/recipes"
+@inject IRecipeRepository Repository
+@inject IJSRuntime JS
+
+<PageTitle>Manage Recipes</PageTitle>
+
+<section class="section-heading">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Recipes</h1>
+    </div>
+    <a class="button button--primary" href="/admin/recipes/new">New recipe</a>
+</section>
+
+<div class="list-stack">
+    @foreach (var recipe in Recipes)
+    {
+        <article class="admin-list-item">
+            <div>
+                <div class="recipe-card__meta">@string.Join(" • ", GetSections(recipe).Select(section => section.Name))</div>
+                <h2>@recipe.Name</h2>
+                <p>@recipe.Description</p>
+            </div>
+            <div class="button-row">
+                <a class="button" href="/recipes/@recipe.Slug">View</a>
+                <a class="button" href="/admin/recipes/@recipe.Id/edit">Edit</a>
+                <button class="button button--danger" type="button" @onclick="() => DeleteAsync(recipe)">Delete</button>
+            </div>
+        </article>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<Recipe> Recipes = [];
+    private IReadOnlyList<RecipeSection> Sections = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Sections = await Repository.GetSectionsAsync();
+        Recipes = await Repository.GetRecipesAsync();
+    }
+
+    private IEnumerable<RecipeSection> GetSections(Recipe recipe) =>
+        Sections.Where(section => recipe.SectionIds.Contains(section.Id));
+
+    private async Task DeleteAsync(Recipe recipe)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete recipe '{recipe.Name}'?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await Repository.DeleteRecipeAsync(recipe.Id);
+        Recipes = await Repository.GetRecipesAsync();
+    }
+}

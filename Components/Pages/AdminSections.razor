@@ -1,0 +1,160 @@
+@page "/admin/sections"
+@inject IRecipeRepository Repository
+@inject IJSRuntime JS
+
+<PageTitle>Manage Sections</PageTitle>
+
+<section class="section-heading">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Sections</h1>
+    </div>
+</section>
+
+<div class="admin-grid">
+    <section class="panel">
+        <h2>@(EditModel.Id == Guid.Empty ? "Add section" : "Edit section")</h2>
+        @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+        {
+            <p class="validation-summary">@ErrorMessage</p>
+        }
+        <EditForm Model="EditModel" OnValidSubmit="SaveAsync" FormName="section-form">
+            <DataAnnotationsValidator />
+            <div class="form-grid">
+                <div>
+                    <label class="field-label" for="section-name">Name</label>
+                    <InputText id="section-name" class="text-input" @bind-Value="EditModel.Name" />
+                </div>
+                <div>
+                    <label class="field-label" for="section-description">Description</label>
+                    <InputTextArea id="section-description" class="text-area" @bind-Value="EditModel.Description" />
+                </div>
+                <div>
+                    <label class="field-label" for="section-sortorder">Sort order</label>
+                    <InputNumber id="section-sortorder" class="text-input" @bind-Value="EditModel.SortOrder" />
+                </div>
+            </div>
+            <div class="button-row">
+                <button class="button button--primary" type="submit">Save section</button>
+                @if (EditModel.Id != Guid.Empty)
+                {
+                    <button class="button" type="button" @onclick="ResetForm">Cancel edit</button>
+                }
+            </div>
+        </EditForm>
+    </section>
+
+    <section class="panel">
+        <h2>Current sections</h2>
+        <div class="list-stack">
+            @foreach (var section in Sections)
+            {
+                <article class="admin-list-item">
+                    <div>
+                        <h3>@section.Name</h3>
+                        <p>@section.Description</p>
+                    </div>
+                    <div class="button-row">
+                        <button class="button" type="button" @onclick="() => BeginEdit(section)">Edit</button>
+                        <button class="button button--danger" type="button" @onclick="() => DeleteAsync(section)">Delete</button>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+</div>
+
+@code {
+    private List<RecipeSection> Sections = [];
+    private SectionEditorModel EditModel = new();
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        Sections = (await Repository.GetSectionsAsync()).ToList();
+        Sections.Sort((left, right) => left.SortOrder.CompareTo(right.SortOrder));
+    }
+
+    private async Task SaveAsync()
+    {
+        ErrorMessage = Validate();
+        if (ErrorMessage is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Repository.SaveSectionAsync(new RecipeSection
+            {
+                Id = EditModel.Id == Guid.Empty ? Guid.NewGuid() : EditModel.Id,
+                Name = EditModel.Name,
+                Description = EditModel.Description,
+                SortOrder = EditModel.SortOrder,
+                Slug = EditModel.Slug
+            });
+            await LoadAsync();
+            ResetForm();
+        }
+        catch (InvalidOperationException exception)
+        {
+            ErrorMessage = exception.Message;
+        }
+    }
+
+    private void BeginEdit(RecipeSection section)
+    {
+        ErrorMessage = null;
+        EditModel = new SectionEditorModel
+        {
+            Id = section.Id,
+            Name = section.Name,
+            Description = section.Description,
+            SortOrder = section.SortOrder,
+            Slug = section.Slug
+        };
+    }
+
+    private async Task DeleteAsync(RecipeSection section)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete section '{section.Name}'?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await Repository.DeleteSectionAsync(section.Id);
+        await LoadAsync();
+        if (EditModel.Id == section.Id)
+        {
+            ResetForm();
+        }
+    }
+
+    private void ResetForm()
+    {
+        ErrorMessage = null;
+        EditModel = new SectionEditorModel { SortOrder = Sections.Count == 0 ? 10 : Sections.Max(section => section.SortOrder) + 10 };
+    }
+
+    private string? Validate()
+    {
+        if (string.IsNullOrWhiteSpace(EditModel.Name))
+        {
+            return "Section name is required.";
+        }
+
+        return null;
+    }
+
+    private sealed class SectionEditorModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Slug { get; set; } = string.Empty;
+        public int SortOrder { get; set; } = 10;
+    }
+}

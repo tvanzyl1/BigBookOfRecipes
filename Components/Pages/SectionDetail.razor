@@ -1,0 +1,49 @@
+@page "/sections/{Slug}"
+@inject IRecipeRepository Repository
+
+<PageTitle>@(Section?.Name ?? "Section")</PageTitle>
+
+@if (Section is null)
+{
+    <section class="panel">
+        <h1>Section not found</h1>
+        <p>The section you requested does not exist.</p>
+    </section>
+}
+else
+{
+    <section class="section-heading">
+        <div>
+            <p class="eyebrow">Section</p>
+            <h1>@Section.Name</h1>
+            <p>@Section.Description</p>
+        </div>
+        <a class="button" href="/recipes">Browse all recipes</a>
+    </section>
+
+    <div class="recipe-grid">
+        @foreach (var recipe in Recipes)
+        {
+            <article class="recipe-card">
+                <h2><a href="/recipes/@recipe.Slug">@recipe.Name</a></h2>
+                <p>@recipe.Description</p>
+            </article>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private RecipeSection? Section;
+    private IReadOnlyList<Recipe> Recipes = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Section = await Repository.GetSectionBySlugAsync(Slug);
+        var allRecipes = await Repository.GetRecipesAsync();
+        Recipes = Section is null
+            ? []
+            : allRecipes.Where(recipe => recipe.SectionIds.Contains(Section.Id)).ToArray();
+    }
+}

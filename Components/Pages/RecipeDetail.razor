@@ -1,0 +1,62 @@
+@page "/recipes/{Slug}"
+@inject IRecipeRepository Repository
+@inject MarkdownRenderer MarkdownRenderer
+
+<PageTitle>@(Recipe?.Name ?? "Recipe")</PageTitle>
+
+@if (Recipe is null)
+{
+    <section class="panel">
+        <h1>Recipe not found</h1>
+        <p>The recipe you requested does not exist.</p>
+    </section>
+}
+else
+{
+    <section class="recipe-header panel">
+        <div>
+            <p class="eyebrow">@string.Join(" • ", Sections.Select(section => section.Name))</p>
+            <h1>@Recipe.Name</h1>
+            <p class="recipe-description">@Recipe.Description</p>
+        </div>
+    </section>
+
+    <section class="recipe-detail">
+        <aside class="ingredients-panel">
+            <h2>Ingredients</h2>
+            <ul>
+                @foreach (var ingredient in Recipe.Ingredients)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(ingredient.Measurement))
+                        {
+                            <span class="ingredient-measurement">@ingredient.Measurement</span>
+                        }
+                        <span>@ingredient.Name</span>
+                    </li>
+                }
+            </ul>
+        </aside>
+
+        <article class="steps-panel">
+            <h2>Steps</h2>
+            @((MarkupString)MarkdownRenderer.ToHtml(Recipe.StepsMarkdown))
+        </article>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private Recipe? Recipe;
+    private IReadOnlyList<RecipeSection> Sections = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Recipe = await Repository.GetRecipeBySlugAsync(Slug);
+        var allSections = await Repository.GetSectionsAsync();
+        Sections = Recipe is null
+            ? []
+            : allSections.Where(section => Recipe.SectionIds.Contains(section.Id)).ToArray();
+    }
+}

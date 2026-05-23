@@ -1,0 +1,280 @@
+@page "/admin/recipes/new"
+@page "/admin/recipes/{Id:guid}/edit"
+@inject IRecipeRepository Repository
+@inject MarkdownRenderer MarkdownRenderer
+@inject NavigationManager NavigationManager
+
+<PageTitle>@PageTitleText</PageTitle>
+
+<section class="section-heading">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>@PageTitleText</h1>
+    </div>
+</section>
+
+@if (IsLoaded)
+{
+    <EditForm Model="Model" OnSubmit="HandleSubmitAsync" FormName="recipe-form">
+        <div class="admin-grid admin-grid--wide">
+            <section class="panel stack-gap">
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <p class="validation-summary">@ErrorMessage</p>
+                }
+                <div class="form-grid">
+                    <div>
+                        <label class="field-label" for="recipe-name">Name</label>
+                        <InputText id="recipe-name" class="text-input" @bind-Value="Model.Name" />
+                    </div>
+                    <div>
+                        <label class="field-label" for="recipe-description">Description</label>
+                        <InputTextArea id="recipe-description" class="text-area" @bind-Value="Model.Description" />
+                    </div>
+                    <div>
+                        <fieldset class="checkbox-fieldset">
+                            <legend>Sections</legend>
+                            <div class="checkbox-grid">
+                                @foreach (var sectionOption in SectionOptions)
+                                {
+                                    <label class="checkbox-option">
+                                        <input type="checkbox" checked="@sectionOption.IsSelected" @onchange="eventArgs => ToggleSection(sectionOption.SectionId, eventArgs)" />
+                                        <span>@sectionOption.Name</span>
+                                    </label>
+                                }
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+
+                <div class="ingredient-editor">
+                    <div class="section-heading section-heading--compact">
+                        <h2>Ingredients</h2>
+                        <button class="button" type="button" @onclick="AddIngredient">Add ingredient</button>
+                    </div>
+                    @for (var index = 0; index < Model.Ingredients.Count; index++)
+                    {
+                        var ingredient = Model.Ingredients[index];
+                        <div class="ingredient-row">
+                            <div>
+                                <label class="field-label" for="@($"measurement-{index}")">Measurement</label>
+                                <InputText id="@($"measurement-{index}")" class="text-input" @bind-Value="ingredient.Measurement" />
+                            </div>
+                            <div>
+                                <label class="field-label" for="@($"ingredient-{index}")">Ingredient</label>
+                                <InputText id="@($"ingredient-{index}")" class="text-input" @bind-Value="ingredient.Name" />
+                            </div>
+                            <div class="ingredient-row__action">
+                                <button class="button button--danger" type="button" @onclick="() => RemoveIngredient(index)">Remove</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label class="field-label" for="recipe-steps">Steps (Markdown)</label>
+                    <InputTextArea id="recipe-steps" class="text-area text-area--tall" @bind-Value="Model.StepsMarkdown" />
+                </div>
+
+                <div class="button-row">
+                    <button class="button button--primary" type="submit">Save recipe</button>
+                    <a class="button" href="/admin/recipes">Cancel</a>
+                </div>
+            </section>
+
+            <aside class="panel stack-gap">
+                <div class="section-heading section-heading--compact">
+                    <h2>Preview</h2>
+                </div>
+                <div>
+                    <h3>@(string.IsNullOrWhiteSpace(Model.Name) ? "Recipe name" : Model.Name)</h3>
+                    <p>@(string.IsNullOrWhiteSpace(Model.Description) ? "Recipe description preview." : Model.Description)</p>
+                </div>
+                <article class="steps-panel steps-panel--preview">
+                    @((MarkupString)MarkdownRenderer.ToHtml(Model.StepsMarkdown))
+                </article>
+            </aside>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private RecipeEditorModel Model = RecipeEditorModel.CreateEmpty();
+    private List<SectionOption> SectionOptions = [];
+    private bool IsLoaded;
+    private string? ErrorMessage;
+
+    private string PageTitleText => Id.HasValue ? "Edit recipe" : "New recipe";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var sections = await Repository.GetSectionsAsync();
+        if (Id.HasValue)
+        {
+            var recipe = await Repository.GetRecipeByIdAsync(Id.Value);
+            if (recipe is null)
+            {
+                NavigationManager.NavigateTo("/admin/recipes");
+                return;
+            }
+
+            Model = RecipeEditorModel.FromRecipe(recipe);
+        }
+        else
+        {
+            Model = RecipeEditorModel.CreateEmpty();
+        }
+
+        if (Model.Ingredients.Count == 0)
+        {
+            Model.Ingredients.Add(new IngredientEditorModel());
+        }
+
+        SectionOptions = sections
+            .OrderBy(section => section.SortOrder)
+            .Select(section => new SectionOption
+            {
+                SectionId = section.Id,
+                Name = section.Name,
+                IsSelected = Model.SectionIds.Contains(section.Id)
+            })
+            .ToList();
+
+        ErrorMessage = null;
+        IsLoaded = true;
+    }
+
+    private async Task HandleSubmitAsync(EditContext editContext)
+    {
+        ErrorMessage = Validate();
+        if (ErrorMessage is not null)
+        {
+            return;
+        }
+
+        var recipe = Model.ToRecipe();
+        await Repository.SaveRecipeAsync(recipe);
+        NavigationManager.NavigateTo("/admin/recipes");
+    }
+
+    private string? Validate()
+    {
+        if (string.IsNullOrWhiteSpace(Model.Name))
+        {
+            return "Recipe name is required.";
+        }
+
+        if (!SectionOptions.Any(option => option.IsSelected))
+        {
+            return "Select at least one section.";
+        }
+
+        if (Model.Ingredients.All(ingredient => string.IsNullOrWhiteSpace(ingredient.Name)))
+        {
+            return "Add at least one ingredient.";
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.StepsMarkdown))
+        {
+            return "Add at least one step.";
+        }
+
+        return null;
+    }
+
+    private void AddIngredient() => Model.Ingredients.Add(new IngredientEditorModel());
+
+    private void RemoveIngredient(int index)
+    {
+        if (Model.Ingredients.Count == 1)
+        {
+            Model.Ingredients[0] = new IngredientEditorModel();
+            return;
+        }
+
+        Model.Ingredients.RemoveAt(index);
+    }
+
+    private void ToggleSection(Guid sectionId, ChangeEventArgs eventArgs)
+    {
+        var isSelected = eventArgs.Value is bool selected && selected;
+        var option = SectionOptions.First(item => item.SectionId == sectionId);
+        option.IsSelected = isSelected;
+
+        if (isSelected)
+        {
+            if (!Model.SectionIds.Contains(sectionId))
+            {
+                Model.SectionIds.Add(sectionId);
+            }
+        }
+        else
+        {
+            Model.SectionIds.Remove(sectionId);
+        }
+    }
+
+    private sealed class SectionOption
+    {
+        public Guid SectionId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool IsSelected { get; set; }
+    }
+
+    private sealed class RecipeEditorModel
+    {
+        public Guid Id { get; set; }
+        public string Slug { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<Guid> SectionIds { get; set; } = [];
+        public List<IngredientEditorModel> Ingredients { get; set; } = [];
+        public string StepsMarkdown { get; set; } = string.Empty;
+        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+        public static RecipeEditorModel CreateEmpty() => new()
+        {
+            Ingredients = [new IngredientEditorModel()]
+        };
+
+        public static RecipeEditorModel FromRecipe(Recipe recipe) => new()
+        {
+            Id = recipe.Id,
+            Slug = recipe.Slug,
+            Name = recipe.Name,
+            Description = recipe.Description,
+            SectionIds = recipe.SectionIds.ToList(),
+            Ingredients = recipe.Ingredients.Select(ingredient => new IngredientEditorModel
+            {
+                Name = ingredient.Name,
+                Measurement = ingredient.Measurement
+            }).ToList(),
+            StepsMarkdown = recipe.StepsMarkdown,
+            CreatedAt = recipe.CreatedAt
+        };
+
+        public Recipe ToRecipe() => new()
+        {
+            Id = Id == Guid.Empty ? Guid.NewGuid() : Id,
+            Slug = Slug,
+            Name = Name,
+            Description = Description,
+            SectionIds = SectionIds,
+            Ingredients = Ingredients.Select(ingredient => new Ingredient
+            {
+                Name = ingredient.Name,
+                Measurement = ingredient.Measurement
+            }).ToList(),
+            StepsMarkdown = StepsMarkdown,
+            CreatedAt = CreatedAt
+        };
+    }
+
+    private sealed class IngredientEditorModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Measurement { get; set; }
+    }
+}
