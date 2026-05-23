@@ -29,7 +29,7 @@
 
     <div class="search-bar">
         <label class="field-label" for="recipe-search">Search recipes</label>
-        <InputText id="recipe-search" class="text-input" @bind-Value="SearchText" @bind-Value:event="oninput" />
+        <input id="recipe-search" class="text-input" type="search" @bind="SearchText" @bind:event="oninput" />
     </div>
 
     @if (!string.IsNullOrWhiteSpace(SearchText))
