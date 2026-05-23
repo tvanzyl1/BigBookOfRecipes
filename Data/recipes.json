@@ -189,5 +189,51 @@
     "StepsMarkdown": "## Mixing\n1. Beat the eggs in a mixer until well mixed. \n2. Add remaining ingredients and mix until smooth. \n3. Leave the mixture for **at least half an hour**.\n\n## Cooking\n1. Preheat the waffle maker. \n2. Use a pastry brush to lightly grease coat the non-stick coating of the baking plates with oil or butter. \n3. Pour mixture into waffle maker. \n4. Cook until golden brown.",
     "CreatedAt": "2026-05-23T11:05:46.7685731+00:00",
     "UpdatedAt": "2026-05-23T11:05:46.7685057+00:00"
+  },
+  {
+    "Id": "7d88616f-0387-4ea4-a300-5e5b4cf201cb",
+    "Name": "Classic Scones",
+    "Slug": "classic-scones",
+    "Description": "Classic scones with jam \u0026 clotted cream",
+    "SectionIds": [
+      "2df084d8-e3ac-4c19-85a4-239fd22a693b"
+    ],
+    "Ingredients": [
+      {
+        "Name": "self-raising powder",
+        "Measurement": "350g"
+      },
+      {
+        "Name": "baking powder",
+        "Measurement": "1 tsp"
+      },
+      {
+        "Name": "butter",
+        "Measurement": "85g"
+      },
+      {
+        "Name": "caster sugar",
+        "Measurement": "3 tbsp"
+      },
+      {
+        "Name": "milk",
+        "Measurement": "175ml"
+      },
+      {
+        "Name": "vanilla extract",
+        "Measurement": "1 tsp"
+      },
+      {
+        "Name": "lemon juice",
+        "Measurement": "1 squeeze"
+      },
+      {
+        "Name": "egg",
+        "Measurement": "1"
+      }
+    ],
+    "StepsMarkdown": "## Method\n\n**step 1**\n1. Heat the oven to 220C/200C fan/gas 7. \n2. Tip the self-raising flour into a large bowl with \u00BC tsp salt and the baking powder, then mix.\n\n**step 2**\n1. Add the butter, then rub in with your fingers until the mix looks like fine crumbs. \n2. Stir in the caster sugar.\n\n**step 3**\n1. Put the milk into a jug and heat in the microwave for about 30 secs until warm, but not hot. \n2. Add the vanilla extract and a squeeze of lemon juice, then set aside for a moment.\n\n**step 4**\n1. Put a baking tray in the oven. \n2. Make a well in the dry mix, then add the liquid and combine it quickly with a cutlery knife \u2013 it will seem pretty wet at first.\n\n**step 5**\n1. Scatter some flour onto the work surface and tip the dough out. \n2. Dredge the dough and your hands with a little more flour, then fold the dough over 2-3 times until it\u2019s a little smoother. \n3. Pat into a round about 4cm deep. \n4. Take a 5cm cutter (smooth-edged cutters tend to cut more cleanly, giving a better rise) and dip it into some flour. \n5. Plunge into the dough, then repeat until you have four scones. \n6. You may need to press what\u2019s left of the dough back into a round to cut out another four.\n\n**step 6**\n1. Brush the tops with a beaten egg, then carefully arrange on the hot baking tray. 2. Bake for 10 mins until risen and golden on the top. \n\n**Enjoy**\nEat just warm or cold on the day of baking, generously topped with jam and clotted cream. \nIf freezing, freeze once cool. Defrost, then put in a low oven (about 160C/140C fan/gas 3) for a few minutes to refresh.",
+    "CreatedAt": "2026-05-23T22:47:13.1804499+00:00",
+    "UpdatedAt": "2026-05-23T22:47:40.5319932+00:00"
   }
 ]
