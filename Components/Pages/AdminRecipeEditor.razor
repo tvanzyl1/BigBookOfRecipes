@@ -50,12 +50,12 @@
                 <div class="ingredient-editor">
                     <div class="section-heading section-heading--compact">
                         <h2>Ingredients</h2>
-                        <button class="button" type="button" @onclick="AddIngredient">Add ingredient</button>
                     </div>
                     @for (var index = 0; index < Model.Ingredients.Count; index++)
                     {
+                        var removeIndex = index;
                         var ingredient = Model.Ingredients[index];
-                        <div class="ingredient-row">
+                        <div class="ingredient-row" @key="ingredient.Key">
                             <div>
                                 <label class="field-label" for="@($"measurement-{index}")">Measurement</label>
                                 <InputText id="@($"measurement-{index}")" class="text-input" @bind-Value="ingredient.Measurement" />
@@ -65,10 +65,13 @@
                                 <InputText id="@($"ingredient-{index}")" class="text-input" @bind-Value="ingredient.Name" />
                             </div>
                             <div class="ingredient-row__action">
-                                <button class="button button--danger" type="button" @onclick="() => RemoveIngredient(index)">Remove</button>
+                                <button class="button button--danger" type="button" @onclick="() => RemoveIngredient(removeIndex)">Remove</button>
                             </div>
                         </div>
                     }
+                    <div class="button-row">
+                        <button class="button" type="button" @onclick="AddIngredient">Add ingredient</button>
+                    </div>
                 </div>
 
                 <div>
@@ -274,6 +277,7 @@
 
     private sealed class IngredientEditorModel
     {
+        public Guid Key { get; init; } = Guid.NewGuid();
         public string Name { get; set; } = string.Empty;
         public string? Measurement { get; set; }
     }
